@@ -6,7 +6,15 @@ export interface Review {
   date: string;
 }
 
+export interface MenuItem {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+}
+
 export interface BakerProfile {
+  id: string;
   name: string;
   image: string;
   rating: number;
@@ -19,4 +27,14 @@ export interface BakerProfile {
   };
   portfolio: string[];
   reviews: Review[];
+  contact: {
+    phone: string;
+    email: string;
+  };
+  socialLinks: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+  menu: MenuItem[];
 }
