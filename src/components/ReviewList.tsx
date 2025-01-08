@@ -1,6 +1,5 @@
 import { Star } from "lucide-react";
 import { Review } from "@/types/baker";
-import { ScrollArea } from "./ui/scroll-area";
 
 interface ReviewListProps {
   reviews: Review[];
@@ -8,7 +7,7 @@ interface ReviewListProps {
 
 export const ReviewList = ({ reviews }: ReviewListProps) => {
   return (
-    <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+    <div className="max-h-[200px] overflow-y-auto w-full rounded-md border p-4">
       <div className="space-y-4">
         {reviews.map((review) => (
           <div key={review.id} className="border-b pb-4 last:border-0">
@@ -24,6 +23,6 @@ export const ReviewList = ({ reviews }: ReviewListProps) => {
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
