@@ -1,17 +1,44 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, Instagram, Facebook, Twitter, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PortfolioGallery } from "@/components/PortfolioGallery";
 import { ReviewList } from "@/components/ReviewList";
-import { bakers } from "@/data/bakers"; // We'll create this file next
+import { bakers as defaultBakers } from "@/data/bakers"; // We'll create this file next
+import { BakerProfile } from "@/types/baker";
+import { useEffect, useState } from "react";
 
 const BakerProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const baker = bakers.find(b => b.id === id);
+  const [baker, setBaker] = useState<BakerProfile | undefined>(undefined);
+  
+  useEffect(() => {
+    // First check default bakers
+    let foundBaker = defaultBakers.find(b => b.id === id);
+    
+    // If not found, check approved bakers from localStorage
+    if (!foundBaker) {
+      const approvedBakersJSON = localStorage.getItem("approvedBakers");
+      if (approvedBakersJSON) {
+        const approvedBakers = JSON.parse(approvedBakersJSON);
+        foundBaker = approvedBakers.find(b => b.id === id);
+      }
+    }
+    
+    setBaker(foundBaker);
+  }, [id]);
 
   if (!baker) {
-    return <div>Baker not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-semibold mb-4">Baker not found</h2>
+          <p className="mb-6">We couldn't find the baker you're looking for.</p>
+          <Button onClick={() => navigate('/')}>Return to Home</Button>
+        </div>
+      </div>
+    );
   }
 
   return (

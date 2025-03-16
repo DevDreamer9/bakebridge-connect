@@ -12,9 +12,16 @@ export const FeaturedBakers = () => {
     const approvedBakersJSON = localStorage.getItem("approvedBakers");
     if (approvedBakersJSON) {
       const approvedBakers = JSON.parse(approvedBakersJSON);
-      // Combine default bakers with approved ones from localStorage
-      // This ensures we always have some content even in a fresh install
-      setBakers([...defaultBakers, ...approvedBakers]);
+      
+      // Create a map of existing baker IDs to avoid duplicates
+      const bakerMap = new Map();
+      defaultBakers.forEach(baker => bakerMap.set(baker.id, baker));
+      
+      // Add approved bakers, potentially overriding defaults with same ID
+      approvedBakers.forEach(baker => bakerMap.set(baker.id, baker));
+      
+      // Convert map back to array
+      setBakers(Array.from(bakerMap.values()));
     }
   }, []);
   
