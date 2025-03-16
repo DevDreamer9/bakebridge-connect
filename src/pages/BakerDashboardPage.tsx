@@ -136,7 +136,7 @@ const BakerDashboardPage = () => {
         const pendingBakers = JSON.parse(localStorage.getItem("pendingBakers") || "[]");
         
         // Update if exists, add if not
-        const existingIndex = pendingBakers.findIndex((b: any) => b.contact.email === values.email);
+        const existingIndex = pendingBakers.findIndex((b: any) => b.id === bakerProfile.id);
         if (existingIndex >= 0) {
           pendingBakers[existingIndex] = bakerProfile;
         } else {
@@ -147,6 +147,9 @@ const BakerDashboardPage = () => {
       }
       
       toast.success("Profile updated successfully!");
+      if (!user.approved) {
+        toast.info("Your listing has been sent for admin approval");
+      }
     } catch (error) {
       toast.error("Failed to update profile");
       console.error(error);

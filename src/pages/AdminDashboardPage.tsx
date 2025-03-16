@@ -5,18 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Eye, CheckCircle, XCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { BakerProfile } from "@/types/baker";
 
-interface PendingBaker {
-  id: string;
-  name: string;
-  image: string;
-  specialty: string;
-  location: string;
-  contact: {
-    email: string;
-    phone: string;
-  };
-  description: string;
+interface PendingBaker extends BakerProfile {
   approved: boolean;
 }
 
