@@ -1,7 +1,7 @@
+
 import { Dialog, DialogContent } from "./ui/dialog";
 import { BakerProfile } from "@/types/baker";
 import { Star, Phone, Mail, Instagram, Facebook, Twitter } from "lucide-react";
-import { ReviewList } from "./ReviewList";
 import { PortfolioGallery } from "./PortfolioGallery";
 
 interface BakerProfileModalProps {
@@ -93,11 +93,6 @@ export const BakerProfileModal = ({ baker, isOpen, onClose }: BakerProfileModalP
             <div>
               <h3 className="font-semibold mb-4">Portfolio</h3>
               <PortfolioGallery images={baker.portfolio} />
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Customer Reviews</h3>
-              <ReviewList reviews={baker.reviews} />
             </div>
           </div>
         </div>

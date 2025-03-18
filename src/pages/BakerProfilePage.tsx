@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, Instagram, Facebook, Twitter, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PortfolioGallery } from "@/components/PortfolioGallery";
-import { ReviewList } from "@/components/ReviewList";
 import { bakers as defaultBakers } from "@/data/bakers"; // We'll create this file next
 import { BakerProfile } from "@/types/baker";
 import { useEffect, useState } from "react";
@@ -131,11 +130,6 @@ const BakerProfilePage = () => {
             <div className="mt-12">
               <h2 className="text-2xl font-semibold mb-6">Portfolio</h2>
               <PortfolioGallery images={baker.portfolio} />
-            </div>
-
-            <div className="mt-12">
-              <h2 className="text-2xl font-semibold mb-6">Reviews</h2>
-              <ReviewList reviews={baker.reviews} />
             </div>
           </div>
         </div>
