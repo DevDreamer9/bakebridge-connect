@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -25,6 +26,7 @@ const formSchema = z.object({
 const LoginPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { refreshAdminStatus } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,29 +40,38 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting to sign in with email:", values.email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
       if (error) {
+        console.error("Login error:", error);
         toast.error(error.message);
         return;
       }
 
       if (data?.user) {
-        // Check if the user is an admin (for demo purposes, we'll check the email)
-        if (values.email === "admin@example.com") {
+        console.log("Sign in successful for user ID:", data.user.id);
+        
+        // Check admin status directly
+        const isAdmin = await refreshAdminStatus();
+        console.log("Admin status after login:", isAdmin);
+        
+        if (isAdmin) {
+          console.log("User is admin, redirecting to admin dashboard");
           toast.success("Welcome back, Admin!");
           navigate("/admin/dashboard");
         } else {
+          console.log("User is not admin, redirecting to baker dashboard");
           toast.success("Welcome back!");
           navigate("/baker/dashboard");
         }
       }
     } catch (error) {
+      console.error("Login process error:", error);
       toast.error("Login failed. Please try again.");
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

@@ -10,6 +10,7 @@ import BakerDashboardPage from "./pages/BakerDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminDebugPage from "./pages/AdminDebugPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -40,6 +41,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminDashboardPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/debug" 
+              element={
+                <ProtectedRoute>
+                  <AdminDebugPage />
                 </ProtectedRoute>
               } 
             />
