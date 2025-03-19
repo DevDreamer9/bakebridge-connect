@@ -21,27 +21,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Function to check if the user is an admin
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('baker_profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return false;
+      }
+      
+      return data?.role === 'admin';
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Check if user is admin (for demo, admin@example.com is admin)
-        setIsAdmin(session?.user?.email === 'admin@example.com');
+        // Check if user is admin
+        if (session?.user) {
+          const isUserAdmin = await checkAdminStatus(session.user.id);
+          setIsAdmin(isUserAdmin);
+        } else {
+          setIsAdmin(false);
+        }
         
         setIsLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       // Check if user is admin
-      setIsAdmin(session?.user?.email === 'admin@example.com');
+      if (session?.user) {
+        const isUserAdmin = await checkAdminStatus(session.user.id);
+        setIsAdmin(isUserAdmin);
+      } else {
+        setIsAdmin(false);
+      }
       
       setIsLoading(false);
     });
