@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Eye, CheckCircle, XCircle, LogOut } from "lucide-react";
+import { Eye, CheckCircle, XCircle, LogOut, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BakerProfile } from "@/types/baker";
 import { useNavigate } from "react-router-dom";
@@ -16,15 +16,19 @@ interface PendingBaker extends BakerProfile {
 const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const [pendingBakers, setPendingBakers] = useState<PendingBaker[]>([]);
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, user, refreshAdminStatus } = useAuth();
 
   useEffect(() => {
+    // Confirm we're on the admin dashboard and log status
+    console.log("Admin Dashboard loaded, user:", user?.email);
+    console.log("Admin status:", isAdmin);
+    
     // Load pending bakers
     const storedPendingBakers = localStorage.getItem("pendingBakers");
     if (storedPendingBakers) {
       setPendingBakers(JSON.parse(storedPendingBakers));
     }
-  }, []);
+  }, [user, isAdmin]);
 
   const handleApproveBaker = async (baker: PendingBaker) => {
     try {
@@ -87,6 +91,11 @@ const AdminDashboardPage = () => {
     navigate(`/baker/${baker.id}`);
   };
 
+  const handleRefreshAdminStatus = async () => {
+    const isAdmin = await refreshAdminStatus();
+    toast.success(`Admin status refreshed: ${isAdmin ? 'You are an admin' : 'You are not an admin'}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -95,10 +104,24 @@ const AdminDashboardPage = () => {
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600">Manage baker applications</p>
           </div>
-          <Button variant="outline" onClick={signOut} className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Log Out
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefreshAdminStatus} 
+              className="flex items-center gap-2"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Refresh Status
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={signOut} 
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Log Out
+            </Button>
+          </div>
         </div>
 
         <div className="mb-8">

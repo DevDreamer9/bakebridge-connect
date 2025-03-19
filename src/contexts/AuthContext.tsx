@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   session: Session | null;
@@ -10,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signOut: () => Promise<void>;
   isLoading: boolean;
+  refreshAdminStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
+      console.log('User role data:', data);
       return data?.role === 'admin';
     } catch (error) {
       console.error('Error checking admin status:', error);
@@ -42,16 +45,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Function to refresh admin status - can be called when needed
+  const refreshAdminStatus = async () => {
+    if (user) {
+      const isUserAdmin = await checkAdminStatus(user.id);
+      console.log('Refreshed admin status:', isUserAdmin);
+      setIsAdmin(isUserAdmin);
+      return isUserAdmin;
+    }
+    return false;
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         // Check if user is admin
         if (session?.user) {
           const isUserAdmin = await checkAdminStatus(session.user.id);
+          console.log('User admin status:', isUserAdmin);
           setIsAdmin(isUserAdmin);
         } else {
           setIsAdmin(false);
@@ -63,12 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
       // Check if user is admin
       if (session?.user) {
         const isUserAdmin = await checkAdminStatus(session.user.id);
+        console.log('Initial admin status:', isUserAdmin);
         setIsAdmin(isUserAdmin);
       } else {
         setIsAdmin(false);
@@ -93,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin,
     signOut,
     isLoading,
+    refreshAdminStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
