@@ -44,14 +44,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/admin/debug" 
-              element={
-                <ProtectedRoute>
-                  <AdminDebugPage />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/admin/debug" element={<AdminDebugPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </AuthProvider>
