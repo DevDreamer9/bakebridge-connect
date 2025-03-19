@@ -11,7 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signOut: () => Promise<void>;
   isLoading: boolean;
-  refreshAdminStatus: () => Promise<void>;
+  refreshAdminStatus: () => Promise<boolean>; // Changed from Promise<void> to Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Function to refresh admin status - can be called when needed
-  const refreshAdminStatus = async () => {
+  const refreshAdminStatus = async (): Promise<boolean> => {
     if (user) {
       const isUserAdmin = await checkAdminStatus(user.id);
       console.log('Refreshed admin status:', isUserAdmin);
