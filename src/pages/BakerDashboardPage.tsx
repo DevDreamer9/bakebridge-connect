@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +18,8 @@ import {
 } from "@/components/ui/form";
 import { MenuItem } from "@/types/baker";
 import { MenuItemForm } from "@/components/MenuItemForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -36,46 +37,11 @@ const profileSchema = z.object({
 });
 
 const BakerDashboardPage = () => {
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
   
-  useEffect(() => {
-    // Check if user is authenticated
-    const storedAuth = localStorage.getItem("bakerAuth");
-    if (!storedAuth) {
-      toast.error("Please log in to access your dashboard");
-      navigate("/login");
-      return;
-    }
-    
-    const user = JSON.parse(storedAuth);
-    setUser(user);
-    
-    // Check if profile already exists
-    const storedProfile = localStorage.getItem(`bakerProfile-${user.email}`);
-    if (storedProfile) {
-      const profile = JSON.parse(storedProfile);
-      form.reset({
-        name: profile.name,
-        specialty: profile.specialty,
-        location: profile.location,
-        description: profile.description,
-        pricingStarting: profile.pricing.starting,
-        pricingRange: profile.pricing.range,
-        phone: profile.contact.phone,
-        email: profile.contact.email,
-        instagramLink: profile.socialLinks.instagram || "",
-        facebookLink: profile.socialLinks.facebook || "",
-        twitterLink: profile.socialLinks.twitter || "",
-        imageUrl: profile.image,
-      });
-      
-      setMenuItems(profile.menu || []);
-    }
-  }, []);
-
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -86,13 +52,66 @@ const BakerDashboardPage = () => {
       pricingStarting: 0,
       pricingRange: "",
       phone: "",
-      email: "",
+      email: user?.email || "",
       instagramLink: "",
       facebookLink: "",
       twitterLink: "",
       imageUrl: "https://images.unsplash.com/photo-1621303837174-89787a7d4729?auto=format&fit=crop&w=800",
     },
   });
+  
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user) {
+        // First check if profile already exists in Supabase
+        const { data: bakerProfile, error } = await supabase
+          .from('baker_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error loading profile:', error);
+          return;
+        }
+        
+        if (bakerProfile) {
+          setProfile(bakerProfile);
+          
+          // Check if detailed profile exists in localStorage
+          const storedProfile = localStorage.getItem(`bakerProfile-${user.email}`);
+          if (storedProfile) {
+            const parsedProfile = JSON.parse(storedProfile);
+            form.reset({
+              name: parsedProfile.name,
+              specialty: parsedProfile.specialty,
+              location: parsedProfile.location,
+              description: parsedProfile.description,
+              pricingStarting: parsedProfile.pricing.starting,
+              pricingRange: parsedProfile.pricing.range,
+              phone: parsedProfile.contact.phone,
+              email: parsedProfile.contact.email,
+              instagramLink: parsedProfile.socialLinks.instagram || "",
+              facebookLink: parsedProfile.socialLinks.facebook || "",
+              twitterLink: parsedProfile.socialLinks.twitter || "",
+              imageUrl: parsedProfile.image,
+            });
+            
+            setMenuItems(parsedProfile.menu || []);
+          } else {
+            // If no detailed profile, just set name and email from baker_profile
+            form.reset({
+              ...form.getValues(),
+              name: bakerProfile.name,
+              email: bakerProfile.email,
+            });
+          }
+        }
+      }
+    };
+    
+    loadProfile();
+  }, [user, form]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     if (!user) return;
@@ -102,7 +121,7 @@ const BakerDashboardPage = () => {
     try {
       // Create baker profile from form values
       const bakerProfile = {
-        id: crypto.randomUUID(),
+        id: user.id,
         name: values.name,
         image: values.imageUrl,
         rating: 0,
@@ -125,18 +144,18 @@ const BakerDashboardPage = () => {
         portfolio: [values.imageUrl],
         menu: menuItems,
         reviews: [],
-        approved: user.approved || false,
+        approved: profile?.approved || false,
       };
       
       // Store in local storage for demo
       localStorage.setItem(`bakerProfile-${user.email}`, JSON.stringify(bakerProfile));
       
       // Store in pending bakers if not approved
-      if (!user.approved) {
+      if (!profile?.approved) {
         const pendingBakers = JSON.parse(localStorage.getItem("pendingBakers") || "[]");
         
         // Update if exists, add if not
-        const existingIndex = pendingBakers.findIndex((b: any) => b.id === bakerProfile.id);
+        const existingIndex = pendingBakers.findIndex((b: any) => b.id === user.id);
         if (existingIndex >= 0) {
           pendingBakers[existingIndex] = bakerProfile;
         } else {
@@ -147,7 +166,7 @@ const BakerDashboardPage = () => {
       }
       
       toast.success("Profile updated successfully!");
-      if (!user.approved) {
+      if (!profile?.approved) {
         toast.info("Your listing has been sent for admin approval");
       }
     } catch (error) {
@@ -165,12 +184,6 @@ const BakerDashboardPage = () => {
   const handleRemoveMenuItem = (index: number) => {
     setMenuItems(menuItems.filter((_, i) => i !== index));
   };
-  
-  const handleLogout = () => {
-    localStorage.removeItem("bakerAuth");
-    navigate("/login");
-    toast.success("Logged out successfully");
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -179,12 +192,12 @@ const BakerDashboardPage = () => {
           <div>
             <h1 className="text-3xl font-bold">Baker Dashboard</h1>
             <p className="text-gray-600">
-              {user?.approved 
+              {profile?.approved 
                 ? "Your profile is approved and visible to customers" 
                 : "Your profile is pending admin approval"}
             </p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button variant="outline" onClick={signOut}>
             Log Out
           </Button>
         </div>

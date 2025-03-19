@@ -15,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -37,35 +38,29 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      // For demo purposes, check if it's the admin login
-      if (values.email === "admin@example.com" && values.password === "admin123") {
-        localStorage.setItem("bakerAuth", JSON.stringify({
-          name: "Super Admin",
-          email: values.email,
-          role: "admin",
-        }));
-        toast.success("Welcome back, Admin!");
-        navigate("/admin/dashboard");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+
+      if (error) {
+        toast.error(error.message);
         return;
       }
 
-      // For demo purposes, simulate baker login
-      // In a real app, this would verify with a backend
-      const storedAuth = localStorage.getItem("bakerAuth");
-      if (storedAuth) {
-        const user = JSON.parse(storedAuth);
-        if (user.email === values.email) {
-          // Password check would normally happen on the server
+      if (data?.user) {
+        // Check if the user is an admin (for demo purposes, we'll check the email)
+        if (values.email === "admin@example.com") {
+          toast.success("Welcome back, Admin!");
+          navigate("/admin/dashboard");
+        } else {
           toast.success("Welcome back!");
           navigate("/baker/dashboard");
-          return;
         }
       }
-
-      // If we get here, login failed
-      toast.error("Invalid email or password");
     } catch (error) {
       toast.error("Login failed. Please try again.");
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

@@ -15,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -38,22 +39,28 @@ const SignUpPage = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     
-    // This would normally connect to a backend service
-    // For demo purposes, we'll simulate the signup
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store the user in local storage for demo purposes
-      localStorage.setItem("bakerAuth", JSON.stringify({
-        name: values.name,
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
         email: values.email,
-        role: "baker",
-        approved: false,
-      }));
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+          },
+        },
+      });
       
-      toast.success("Account created successfully! Please wait for admin approval.");
-      navigate("/baker/dashboard");
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      // Check if user was created successfully
+      if (data?.user) {
+        toast.success("Account created successfully! Please wait for admin approval.");
+        navigate("/baker/dashboard");
+      }
     } catch (error) {
       toast.error("Failed to create account. Please try again.");
       console.error("Signup error:", error);

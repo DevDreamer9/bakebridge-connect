@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Eye, CheckCircle, XCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { BakerProfile } from "@/types/baker";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PendingBaker extends BakerProfile {
   approved: boolean;
@@ -14,35 +16,29 @@ interface PendingBaker extends BakerProfile {
 const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const [pendingBakers, setPendingBakers] = useState<PendingBaker[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const { signOut } = useAuth();
 
   useEffect(() => {
-    // Check if admin is logged in
-    const storedAuth = localStorage.getItem("bakerAuth");
-    if (!storedAuth) {
-      toast.error("Please log in to access the admin dashboard");
-      navigate("/login");
-      return;
-    }
-
-    const user = JSON.parse(storedAuth);
-    if (user.role !== "admin") {
-      toast.error("You don't have permission to access this page");
-      navigate("/");
-      return;
-    }
-
-    setUser(user);
-
     // Load pending bakers
     const storedPendingBakers = localStorage.getItem("pendingBakers");
     if (storedPendingBakers) {
       setPendingBakers(JSON.parse(storedPendingBakers));
     }
-  }, [navigate]);
+  }, []);
 
-  const handleApproveBaker = (baker: PendingBaker) => {
+  const handleApproveBaker = async (baker: PendingBaker) => {
     try {
+      // Update baker's approval status in database
+      const { error } = await supabase
+        .from('baker_profiles')
+        .update({ approved: true })
+        .eq('id', baker.id);
+        
+      if (error) {
+        toast.error("Failed to approve baker: " + error.message);
+        return;
+      }
+
       // Get existing approved bakers from data store
       const bakersFromStorage = localStorage.getItem("approvedBakers");
       const approvedBakers = bakersFromStorage ? JSON.parse(bakersFromStorage) : [];
@@ -64,14 +60,6 @@ const AdminDashboardPage = () => {
       const updatedPendingBakers = pendingBakers.filter(b => b.id !== baker.id);
       setPendingBakers(updatedPendingBakers);
       localStorage.setItem("pendingBakers", JSON.stringify(updatedPendingBakers));
-
-      // Update the user's approval status
-      const bakerAuthKey = `bakerProfile-${baker.contact.email}`;
-      const bakerProfile = localStorage.getItem(bakerAuthKey);
-      if (bakerProfile) {
-        const updatedProfile = { ...JSON.parse(bakerProfile), approved: true };
-        localStorage.setItem(bakerAuthKey, JSON.stringify(updatedProfile));
-      }
 
       toast.success(`${baker.name} has been approved`);
     } catch (error) {
@@ -99,12 +87,6 @@ const AdminDashboardPage = () => {
     navigate(`/baker/${baker.id}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("bakerAuth");
-    navigate("/login");
-    toast.success("Logged out successfully");
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -113,7 +95,7 @@ const AdminDashboardPage = () => {
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-gray-600">Manage baker applications</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+          <Button variant="outline" onClick={signOut} className="flex items-center gap-2">
             <LogOut className="h-4 w-4" />
             Log Out
           </Button>
