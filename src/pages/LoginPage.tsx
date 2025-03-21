@@ -55,6 +55,7 @@ const LoginPage = () => {
 
       if (data?.user) {
         console.log("Sign in successful for user ID:", data.user.id);
+        toast.success("Login successful!");
         
         // Check admin status directly
         const isAdmin = await refreshAdminStatus();
@@ -62,11 +63,9 @@ const LoginPage = () => {
         
         if (isAdmin) {
           console.log("User is admin, redirecting to admin dashboard");
-          toast.success("Welcome back, Admin!");
           navigate("/admin/dashboard");
         } else {
           console.log("User is not admin, redirecting to baker dashboard");
-          toast.success("Welcome back!");
           navigate("/baker/dashboard");
         }
       }
@@ -82,13 +81,55 @@ const LoginPage = () => {
     setIsDemoLoading(true);
     
     try {
-      // Fixed credentials for demo admin
+      console.log("Starting demo admin login process");
+      
+      // First try to login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: "admin@example.com",
         password: "admin123",
       });
       
-      if (error) {
+      // If login fails due to user not existing, create the user
+      if (error && error.message.includes("Invalid login credentials")) {
+        console.log("Demo account doesn't exist, creating it");
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: "admin@example.com",
+          password: "admin123",
+          options: {
+            data: {
+              name: "Demo Admin"
+            }
+          }
+        });
+        
+        if (signUpError) {
+          console.error("Failed to create demo admin account:", signUpError);
+          toast.error("Failed to create demo admin account");
+          return;
+        }
+        
+        if (signUpData?.user) {
+          console.log("Demo admin account created with ID:", signUpData.user.id);
+          
+          // Wait a moment for the account to be fully created
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Try to login again with the newly created account
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: "admin@example.com",
+            password: "admin123",
+          });
+          
+          if (loginError) {
+            console.error("Demo admin login error after creation:", loginError);
+            toast.error("Failed to login with newly created demo account");
+            return;
+          }
+          
+          data = loginData;
+        }
+      } else if (error) {
         console.error("Demo admin login error:", error);
         toast.error(`Failed to login as demo admin: ${error.message}`);
         return;
@@ -98,6 +139,7 @@ const LoginPage = () => {
         console.log("Demo admin login successful");
         
         // Force set admin role in database
+        console.log("Updating role to admin for user:", data.user.id);
         const { error: updateError } = await supabase
           .from('baker_profiles')
           .update({ role: 'admin' })
@@ -105,14 +147,25 @@ const LoginPage = () => {
           
         if (updateError) {
           console.error("Failed to update admin role:", updateError);
-          toast.error("Failed to set admin role. Please go to /admin/debug to fix.");
+          toast.error("Failed to set admin role, but login was successful");
+        } else {
+          console.log("Successfully updated role to admin");
         }
         
         // Refresh admin status
-        await refreshAdminStatus();
+        const isAdmin = await refreshAdminStatus();
+        console.log("Admin status check result:", isAdmin);
         
         toast.success("Logged in as demo admin!");
-        navigate("/admin/dashboard");
+        
+        // Navigate based on admin status
+        if (isAdmin) {
+          navigate("/admin/dashboard");
+        } else {
+          // If admin status isn't set yet, go to debug page
+          toast.info("Admin status not detected. Going to debug page.");
+          navigate("/admin/debug");
+        }
       }
     } catch (error) {
       console.error("Demo admin login process error:", error);

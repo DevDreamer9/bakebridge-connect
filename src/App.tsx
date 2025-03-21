@@ -44,6 +44,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            {/* Allow access to debug page without protection */}
             <Route path="/admin/debug" element={<AdminDebugPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
