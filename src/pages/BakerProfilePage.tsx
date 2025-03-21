@@ -1,6 +1,6 @@
 
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, Instagram, Facebook, Twitter, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Instagram, Facebook, Twitter, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PortfolioGallery } from "@/components/PortfolioGallery";
 import { bakers as defaultBakers } from "@/data/bakers"; // We'll create this file next
@@ -67,10 +67,6 @@ const BakerProfilePage = () => {
                 <h1 className="text-3xl font-bold">{baker.name}</h1>
                 <p className="text-gray-600">{baker.specialty}</p>
                 <p className="text-gray-500">{baker.location}</p>
-              </div>
-              <div className="flex items-center">
-                <Star className="w-6 h-6 fill-yellow-400 stroke-yellow-400" />
-                <span className="ml-2 text-xl font-semibold">{baker.rating}</span>
               </div>
             </div>
 
