@@ -26,6 +26,7 @@ const formSchema = z.object({
 const LoginPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const { refreshAdminStatus } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -74,6 +75,50 @@ const LoginPage = () => {
       toast.error("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDemoAdminLogin = async () => {
+    setIsDemoLoading(true);
+    
+    try {
+      // Fixed credentials for demo admin
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "admin@example.com",
+        password: "admin123",
+      });
+      
+      if (error) {
+        console.error("Demo admin login error:", error);
+        toast.error(`Failed to login as demo admin: ${error.message}`);
+        return;
+      }
+      
+      if (data?.user) {
+        console.log("Demo admin login successful");
+        
+        // Force set admin role in database
+        const { error: updateError } = await supabase
+          .from('baker_profiles')
+          .update({ role: 'admin' })
+          .eq('id', data.user.id);
+          
+        if (updateError) {
+          console.error("Failed to update admin role:", updateError);
+          toast.error("Failed to set admin role. Please go to /admin/debug to fix.");
+        }
+        
+        // Refresh admin status
+        await refreshAdminStatus();
+        
+        toast.success("Logged in as demo admin!");
+        navigate("/admin/dashboard");
+      }
+    } catch (error) {
+      console.error("Demo admin login process error:", error);
+      toast.error("Demo admin login failed");
+    } finally {
+      setIsDemoLoading(false);
     }
   };
 
@@ -131,9 +176,18 @@ const LoginPage = () => {
             </Link>
           </p>
           
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-500">Demo Credentials:</p>
-            <p className="text-xs text-gray-400">Admin: admin@example.com / admin123</p>
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-800 mb-3">Quick Access</h3>
+            <Button 
+              onClick={handleDemoAdminLogin} 
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              disabled={isDemoLoading}
+            >
+              {isDemoLoading ? "Logging in..." : "Login as Demo Admin"}
+            </Button>
+            <p className="text-xs text-gray-500 mt-2">
+              This will create/login as admin@example.com with password admin123
+            </p>
           </div>
         </div>
       </div>
