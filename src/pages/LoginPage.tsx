@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
@@ -84,13 +83,13 @@ const LoginPage = () => {
       console.log("Starting demo admin login process");
       
       // First try to login
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let loginResponse = await supabase.auth.signInWithPassword({
         email: "admin@example.com",
         password: "admin123",
       });
       
       // If login fails due to user not existing, create the user
-      if (error && error.message.includes("Invalid login credentials")) {
+      if (loginResponse.error && loginResponse.error.message.includes("Invalid login credentials")) {
         console.log("Demo account doesn't exist, creating it");
         
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -116,34 +115,32 @@ const LoginPage = () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Try to login again with the newly created account
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          loginResponse = await supabase.auth.signInWithPassword({
             email: "admin@example.com",
             password: "admin123",
           });
           
-          if (loginError) {
-            console.error("Demo admin login error after creation:", loginError);
+          if (loginResponse.error) {
+            console.error("Demo admin login error after creation:", loginResponse.error);
             toast.error("Failed to login with newly created demo account");
             return;
           }
-          
-          data = loginData;
         }
-      } else if (error) {
-        console.error("Demo admin login error:", error);
-        toast.error(`Failed to login as demo admin: ${error.message}`);
+      } else if (loginResponse.error) {
+        console.error("Demo admin login error:", loginResponse.error);
+        toast.error(`Failed to login as demo admin: ${loginResponse.error.message}`);
         return;
       }
       
-      if (data?.user) {
+      if (loginResponse.data?.user) {
         console.log("Demo admin login successful");
         
         // Force set admin role in database
-        console.log("Updating role to admin for user:", data.user.id);
+        console.log("Updating role to admin for user:", loginResponse.data.user.id);
         const { error: updateError } = await supabase
           .from('baker_profiles')
           .update({ role: 'admin' })
-          .eq('id', data.user.id);
+          .eq('id', loginResponse.data.user.id);
           
         if (updateError) {
           console.error("Failed to update admin role:", updateError);
