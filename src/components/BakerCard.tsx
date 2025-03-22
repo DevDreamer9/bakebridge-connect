@@ -1,5 +1,5 @@
+
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { BakerProfile } from "@/types/baker";
 
@@ -24,10 +24,6 @@ export const BakerCard = ({ baker }: BakerCardProps) => {
             <h3 className="font-outfit font-semibold text-xl">{baker.name}</h3>
             <p className="text-gray-600 text-sm">{baker.specialty}</p>
             <p className="text-gray-500 text-sm">{baker.location}</p>
-          </div>
-          <div className="flex items-center">
-            <Star className="w-5 h-5 fill-yellow-400 stroke-yellow-400" />
-            <span className="ml-1 font-semibold">{baker.rating}</span>
           </div>
         </div>
         <p className="mt-4 text-gray-700 line-clamp-2">{baker.description}</p>
