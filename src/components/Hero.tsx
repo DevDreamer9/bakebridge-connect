@@ -29,10 +29,7 @@ export const Hero = () => {
   const handleSearch = () => {
     // If there's a direct match, navigate to that location's results
     if (filteredLocations.length === 1) {
-      // We could navigate to a search results page, but for now let's just log
       console.log(`Searching for bakers in ${filteredLocations[0]}`);
-      // In a real app we would navigate to a search results page
-      // For now, let's show the first baker from that location
       const firstMatchingBaker = bakers.find(baker => 
         baker.location.toLowerCase() === filteredLocations[0].toLowerCase()
       );
@@ -60,8 +57,8 @@ export const Hero = () => {
         <p className="text-lg sm:text-xl text-gray-600 mb-8 animate-fade-up">
           Connect with talented local bakers who create amazing custom cakes
         </p>
-        <div className="max-w-2xl mx-auto relative animate-fade-up">
-          <div className="relative">
+        <div className="max-w-xl mx-auto relative animate-fade-up">
+          <div className="relative flex items-center">
             <Input
               type="text"
               value={searchTerm}
@@ -70,24 +67,27 @@ export const Hero = () => {
                 setShowResults(e.target.value.length > 0);
               }}
               placeholder="Search by location..."
-              className="w-full px-6 py-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg"
+              className="w-full pl-12 pr-16 py-3 h-14 rounded-full border-2 border-gray-200 shadow-sm focus:border-primary focus:ring-0 text-base"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleSearch();
                 }
               }}
             />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <Search className="w-5 h-5" />
+            </div>
             <button 
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-3 rounded-full hover:bg-primary/90 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition-colors"
               onClick={handleSearch}
             >
-              <Search className="w-5 h-5" />
+              Search
             </button>
           </div>
           
           {showResults && searchTerm && (
             <div className="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200">
-              <Command className="rounded-lg border shadow-md">
+              <Command className="rounded-lg border-none shadow-none">
                 <CommandList>
                   {filteredLocations.length === 0 ? (
                     <CommandEmpty>No locations found</CommandEmpty>
@@ -98,8 +98,9 @@ export const Hero = () => {
                           key={location} 
                           value={location}
                           onSelect={() => handleLocationSelect(location)}
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:bg-gray-100 py-2"
                         >
+                          <Search className="w-4 h-4 mr-2 text-gray-400" />
                           {location}
                         </CommandItem>
                       ))}
