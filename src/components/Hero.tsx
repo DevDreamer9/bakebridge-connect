@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/command";
 import { bakers } from "@/data/bakers";
 
-export const Hero = () => {
+export const Hero = ({ onFilterChange }: { onFilterChange?: (filteredBakers: typeof bakers) => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [searchType, setSearchType] = useState<"location" | "cakeType">("location");
@@ -37,43 +37,45 @@ export const Hero = () => {
       );
 
   const handleSearch = () => {
-    // If there's a direct match, navigate to that result
-    if (filteredResults.length === 1) {
+    let filteredBakers = bakers;
+    
+    if (searchTerm) {
       if (searchType === "location") {
-        console.log(`Searching for bakers in ${filteredResults[0]}`);
-        const firstMatchingBaker = bakers.find(baker => 
-          baker.location.toLowerCase() === filteredResults[0].toLowerCase()
+        filteredBakers = bakers.filter(baker => 
+          baker.location.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        if (firstMatchingBaker) {
-          navigate(`/baker/${firstMatchingBaker.id}`);
-        }
       } else {
-        // Handle cake type search
-        console.log(`Searching for bakers who make ${filteredResults[0]}`);
-        const firstMatchingBaker = bakers.find(baker => 
-          baker.specialty.toLowerCase().includes(filteredResults[0].toLowerCase())
+        // Filter by cake type
+        filteredBakers = bakers.filter(baker => 
+          baker.specialty.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        if (firstMatchingBaker) {
-          navigate(`/baker/${firstMatchingBaker.id}`);
-        }
       }
+    }
+    
+    // Call the callback to update filtered bakers
+    if (onFilterChange) {
+      onFilterChange(filteredBakers);
     }
   };
 
   const handleResultSelect = (result: string) => {
+    // Update the search term with selected result
+    setSearchTerm(result);
+    
+    // Filter bakers based on selection
+    let filteredBakers = bakers;
+    
     if (searchType === "location") {
-      // Find a baker in this location and navigate to their profile
-      const baker = bakers.find(b => b.location === result);
-      if (baker) {
-        navigate(`/baker/${baker.id}`);
-      }
+      filteredBakers = bakers.filter(baker => baker.location === result);
     } else {
-      // Find a baker with this cake type and navigate to their profile
-      const baker = bakers.find(b => b.specialty.includes(result));
-      if (baker) {
-        navigate(`/baker/${baker.id}`);
-      }
+      filteredBakers = bakers.filter(baker => baker.specialty.includes(result));
     }
+    
+    // Call the callback to update filtered bakers
+    if (onFilterChange) {
+      onFilterChange(filteredBakers);
+    }
+    
     setShowResults(false);
   };
 
