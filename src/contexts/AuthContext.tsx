@@ -11,7 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signOut: () => Promise<void>;
   isLoading: boolean;
-  refreshAdminStatus: () => Promise<boolean>; // Changed from Promise<void> to Promise<boolean>
+  refreshAdminStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      console.log('User role data:', data);
       return data?.role === 'admin';
     } catch (error) {
       console.error('Error checking admin status:', error);
@@ -49,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshAdminStatus = async (): Promise<boolean> => {
     if (user) {
       const isUserAdmin = await checkAdminStatus(user.id);
-      console.log('Refreshed admin status:', isUserAdmin);
       setIsAdmin(isUserAdmin);
       return isUserAdmin;
     }
@@ -57,17 +55,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (event, newSession) => {
+        console.log('Auth state change event:', event, newSession?.user?.email);
+        
+        if (mounted) {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          // Check if user is admin
+          if (newSession?.user) {
+            const isUserAdmin = await checkAdminStatus(newSession.user.id);
+            console.log('Updated admin status on auth change:', isUserAdmin);
+            setIsAdmin(isUserAdmin);
+          } else {
+            setIsAdmin(false);
+          }
+          
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+      console.log('Initial session check:', existingSession?.user?.email);
+      
+      if (mounted) {
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
         
         // Check if user is admin
-        if (session?.user) {
-          const isUserAdmin = await checkAdminStatus(session.user.id);
-          console.log('User admin status:', isUserAdmin);
+        if (existingSession?.user) {
+          const isUserAdmin = await checkAdminStatus(existingSession.user.id);
+          console.log('Initial admin status:', isUserAdmin);
           setIsAdmin(isUserAdmin);
         } else {
           setIsAdmin(false);
@@ -75,34 +99,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setIsLoading(false);
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Check if user is admin
-      if (session?.user) {
-        const isUserAdmin = await checkAdminStatus(session.user.id);
-        console.log('Initial admin status:', isUserAdmin);
-        setIsAdmin(isUserAdmin);
-      } else {
-        setIsAdmin(false);
-      }
-      
-      setIsLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      navigate('/login');
+      toast.success('Successfully signed out');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
   };
 
   const value = {

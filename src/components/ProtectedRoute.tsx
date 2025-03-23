@@ -1,4 +1,3 @@
-
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
@@ -27,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     };
     
     checkAdminStatus();
-  }, [user, isLoading, refreshAdminStatus, location.pathname, requireAdmin]);
+  }, [user, isLoading, refreshAdminStatus, requireAdmin]);
 
   // If authentication is still loading, show loading indicator
   if (isLoading) {

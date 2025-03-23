@@ -56,17 +56,19 @@ const LoginPage = () => {
         console.log("Sign in successful for user ID:", data.user.id);
         toast.success("Login successful!");
         
-        // Check admin status directly
-        const isAdmin = await refreshAdminStatus();
-        console.log("Admin status after login:", isAdmin);
-        
-        if (isAdmin) {
-          console.log("User is admin, redirecting to admin dashboard");
-          navigate("/admin/dashboard");
-        } else {
-          console.log("User is not admin, redirecting to baker dashboard");
-          navigate("/baker/dashboard");
-        }
+        // Wait for auth state to update and check admin status
+        setTimeout(async () => {
+          const isAdmin = await refreshAdminStatus();
+          console.log("Admin status after login:", isAdmin);
+          
+          if (isAdmin) {
+            console.log("User is admin, redirecting to admin dashboard");
+            navigate("/admin/dashboard");
+          } else {
+            console.log("User is not admin, redirecting to baker dashboard");
+            navigate("/baker/dashboard");
+          }
+        }, 500); // Short delay to allow session to be established
       }
     } catch (error) {
       console.error("Login process error:", error);
@@ -111,6 +113,20 @@ const LoginPage = () => {
         if (signUpData?.user) {
           console.log("Demo admin account created with ID:", signUpData.user.id);
           
+          // Create or update baker_profiles entry to ensure admin role
+          const { error: profileError } = await supabase
+            .from('baker_profiles')
+            .upsert({
+              id: signUpData.user.id,
+              name: "Demo Admin",
+              email: "admin@example.com",
+              role: 'admin'
+            });
+            
+          if (profileError) {
+            console.error("Failed to create admin profile:", profileError);
+          }
+          
           // Wait a moment for the account to be fully created
           await new Promise(resolve => setTimeout(resolve, 1000));
           
@@ -139,8 +155,12 @@ const LoginPage = () => {
         console.log("Updating role to admin for user:", loginResponse.data.user.id);
         const { error: updateError } = await supabase
           .from('baker_profiles')
-          .update({ role: 'admin' })
-          .eq('id', loginResponse.data.user.id);
+          .upsert({ 
+            id: loginResponse.data.user.id,
+            name: "Demo Admin",
+            email: "admin@example.com",
+            role: 'admin'
+          });
           
         if (updateError) {
           console.error("Failed to update admin role:", updateError);
@@ -149,20 +169,23 @@ const LoginPage = () => {
           console.log("Successfully updated role to admin");
         }
         
-        // Refresh admin status
-        const isAdmin = await refreshAdminStatus();
-        console.log("Admin status check result:", isAdmin);
-        
         toast.success("Logged in as demo admin!");
         
-        // Navigate based on admin status
-        if (isAdmin) {
-          navigate("/admin/dashboard");
-        } else {
-          // If admin status isn't set yet, go to debug page
-          toast.info("Admin status not detected. Going to debug page.");
-          navigate("/admin/debug");
-        }
+        // Add a delay to allow session to fully establish
+        setTimeout(async () => {
+          // Refresh admin status
+          const isAdmin = await refreshAdminStatus();
+          console.log("Admin status check result:", isAdmin);
+          
+          // Navigate based on admin status
+          if (isAdmin) {
+            navigate("/admin/dashboard");
+          } else {
+            // If admin status isn't set yet, go to debug page
+            toast.info("Admin status not detected. Going to debug page.");
+            navigate("/admin/debug");
+          }
+        }, 1000);
       }
     } catch (error) {
       console.error("Demo admin login process error:", error);
